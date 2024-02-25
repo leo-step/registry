@@ -33,9 +33,11 @@ model NodeEntry {
   owner         String      
   nodeType      NodeType
   status        NodeStatus
+  coords        String
 }
 
-
+// Unsupported("geometry(Point, 4326)")?
+//  @@index([coords], name: "location_idx", type: Gist)
 
 model ServiceStat {
   name  String @id

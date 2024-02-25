@@ -2,6 +2,7 @@ import { prisma } from "./db.server";
 import { ethers } from "ethers";
 import { NodeEntry, NodeStatus, NodeType } from "@prisma/client";
 import { NodeRegistry__factory } from "@palette-labs/registry-contracts";
+import {cellToLatLng} from "h3-js";
 
 const batchSize = process.env.BATCH_SIZE ? Number(process.env.BATCH_SIZE) : 2000;
 const requestDelay = process.env.REQUEST_DELAY ? Number(process.env.REQUEST_DELAY) : 0;
@@ -95,10 +96,13 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
 
   return events.map(event => {
       const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
+      const h3Index = location[0]
+      const hexCenterCoordinates = cellToLatLng(h3Index);
       return {
           uid, name, callbackUrl, location, industryCode, owner,
           nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
           status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
+          coords: String(hexCenterCoordinates)
       };
   });
 }
