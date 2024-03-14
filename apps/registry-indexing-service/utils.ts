@@ -98,11 +98,20 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
       const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
       const h3Index = location[0]
       const hexCenterCoordinates = cellToLatLng(h3Index);
+      // [37.35171820183272, -122.05032565263946]
+      // "POINT(-71.060316 48.432044)""
+
+
+      const lat = hexCenterCoordinates[0];
+      const long = hexCenterCoordinates[1];
+      
+      const pointString = "POINT(" + lat + " " + long + ")";
+
       return {
           uid, name, callbackUrl, location, industryCode, owner,
           nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
           status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
-          coords: String(hexCenterCoordinates)
+          pointString: pointString
       };
   });
 }
@@ -134,11 +143,65 @@ export async function getAndUpdateAllRelevantLogs() {
 
 // Example processing function for 'Registered' logs
 async function processRegisteredNode(node: NodeEntry) {
-  try {
-    await prisma.nodeEntry.create({ data: node });
-  } catch (error) {
-    console.error("Error registering node:", error);
-  }
+  // try {
+    /*
+      return {
+          uid, name, callbackUrl, location, industryCode, owner,
+          nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
+          status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
+          coords: pointString
+      };
+    */
+
+    /* connecting to docker container commands:
+    
+    docker container exec -it registry-postgres bash
+    psql -U admin -d registry
+    \d "NodeEntry"
+
+
+
+                            Table "public.NodeEntry"
+          Column    |         Type         | Collation | Nullable | Default 
+      --------------+----------------------+-----------+----------+---------
+      uid          | text                 |           | not null | 
+      name         | text                 |           | not null | 
+      callbackUrl  | text                 |           | not null | 
+      location     | text[]               |           |          | 
+      industryCode | text                 |           | not null | 
+      owner        | text                 |           | not null | 
+      nodeType     | "NodeType"           |           | not null | 
+      status       | "NodeStatus"         |           | not null | 
+      coords       | geometry(Point,4326) |           | not null |
+    */
+
+
+    // INSERT INTO app(p_id, the_geom)
+    // VALUES(2, ST_GeomFromText('POINT(-71.060316 48.432044)', 4326));
+
+    // await prisma.$queryRaw`SELECT * FROM User WHERE email = ${email}`
+
+    const createNodeEntry = async (data: any) => {
+      const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status, pointString } = data;
+      
+      // Using Prisma's executeRaw to execute the raw SQL query
+
+       //ST_GeomFromText('POINT(-71.060316 48.432044)', 4326)
+      const result = await prisma.$executeRawUnsafe(
+        'INSERT INTO "NodeEntry" ("uid", "name", "callbackUrl", "location", "industryCode", "owner", "nodeType", "status", "coords") ' +
+        'VALUES ($1, $2, $3, $4, $5, $6, $7::"NodeType", $8::"NodeStatus", ' + `ST_GeomFromText('${pointString}', 4326));`,
+        uid, name, callbackUrl, location, industryCode, owner, nodeType, status
+      );
+      
+      return result;
+    };
+
+    try {
+      const result = await createNodeEntry(node);
+      console.log('Node entry created:', result);
+    } catch (error) {
+      console.error('Error creating node entry:', error);
+    }
 }
 
 export async function updateServiceStatToLastBlock(
