@@ -2,7 +2,7 @@ import { prisma } from "./db.server";
 import { ethers } from "ethers";
 import { NodeEntry, NodeStatus, NodeType } from "@prisma/client";
 import { NodeRegistry__factory } from "@palette-labs/registry-contracts";
-import {cellToLatLng} from "h3-js";
+import {cellToBoundary} from "h3-js";
 
 const batchSize = process.env.BATCH_SIZE ? Number(process.env.BATCH_SIZE) : 2000;
 const requestDelay = process.env.REQUEST_DELAY ? Number(process.env.REQUEST_DELAY) : 0;
@@ -97,21 +97,33 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
   return events.map(event => {
       const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
       const h3Index = location[0]
-      const hexCenterCoordinates = cellToLatLng(h3Index);
+      // const hexCenterCoordinates = cellToLatLng(h3Index);
+      const points = cellToBoundary(h3Index);
       // [37.35171820183272, -122.05032565263946]
       // "POINT(-71.060316 48.432044)""
 
-
-      const lat = hexCenterCoordinates[0];
-      const long = hexCenterCoordinates[1];
+      var polygonStringParts: string[] = []
+      for (let i = 0; i < points.length; i++) {
+        const lat = points[i][0];
+        const long = points[i][1];
+        
+        const pointString = lat + " " + long;
+        polygonStringParts.push(pointString)
+      }
+      const lat = points[0][0];
+      const long = points[0][1];
       
-      const pointString = "POINT(" + lat + " " + long + ")";
+      const pointString = lat + " " + long;
+      polygonStringParts.push(pointString)
+
+      const polygonString: string = "POLYGON((" + polygonStringParts.join(",") + "))"
+      console.log("POLYGON STRINGGGG", polygonString)
 
       return {
           uid, name, callbackUrl, location, industryCode, owner,
           nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
           status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
-          pointString: pointString
+          polygonString: polygonString
       };
   });
 }
@@ -182,14 +194,21 @@ async function processRegisteredNode(node: NodeEntry) {
     // await prisma.$queryRaw`SELECT * FROM User WHERE email = ${email}`
 
     const createNodeEntry = async (data: any) => {
-      const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status, pointString } = data;
+      const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status, polygonString } = data;
       
       // Using Prisma's executeRaw to execute the raw SQL query
 
        //ST_GeomFromText('POINT(-71.060316 48.432044)', 4326)
+
+       /*
+       SELECT ST_PolygonFromText('POLYGON((-71.1776585052917 42.3902909739571,-71.1776820268866 42.3903701743239,
+-71.1776063012595 42.3903825660754,-71.1775826583081 42.3903033653531,-71.1776585052917 42.3902909739571))');
+st_polygonfromtext
+       
+       */
       const result = await prisma.$executeRawUnsafe(
         'INSERT INTO "NodeEntry" ("uid", "name", "callbackUrl", "location", "industryCode", "owner", "nodeType", "status", "coords") ' +
-        'VALUES ($1, $2, $3, $4, $5, $6, $7::"NodeType", $8::"NodeStatus", ' + `ST_GeomFromText('${pointString}', 4326));`,
+        'VALUES ($1, $2, $3, $4, $5, $6, $7::"NodeType", $8::"NodeStatus", ' + `ST_PolygonFromText('${polygonString}', 4326));`,
         uid, name, callbackUrl, location, industryCode, owner, nodeType, status
       );
       
