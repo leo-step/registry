@@ -2,7 +2,7 @@ import { prisma } from "./db.server";
 import { ethers } from "ethers";
 import { NodeEntry, NodeStatus, NodeType } from "@prisma/client";
 import { NodeRegistry__factory } from "@palette-labs/registry-contracts";
-import {cellToBoundary} from "h3-js";
+import {cellToBoundary, latLngToCell} from "h3-js";
 
 const batchSize = process.env.BATCH_SIZE ? Number(process.env.BATCH_SIZE) : 2000;
 const requestDelay = process.env.REQUEST_DELAY ? Number(process.env.REQUEST_DELAY) : 0;
@@ -93,12 +93,32 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
       console.log(`No events found in the specified range. ${startBlock}, ${endBlock}`);
       return [];
   }
+  // array of lat and long points
+  // in map, you have an index hopefully and u can just choose the point
 
-  return events.map(event => {
+  // CS building: 40.3499433,-74.652273
+  // plainsboro township: 40.354250, -74.606386
+  // lawrenceville: 40.298865, -74.736349
+  // colo: 40.349619,-74.6540515
+  // new brunswick: 40.490150, -74.443452
+  const locations = [['CS building', 40.3499433, -74.652273], 
+                  ['plainsboro township', 40.354250, -74.606386], 
+                  ['lawrenceville', 40.298865, -74.736349], 
+                  ['colo', 40.349619,-74.6540515], 
+                  ['new brunswick', 40.490150, -74.443452]]
+  
+  return events.map((event, index) => {
       const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
-      const h3Index = location[0]
-      // const hexCenterCoordinates = cellToLatLng(h3Index);
-      const points = cellToBoundary(h3Index);
+
+      // TEST CODE 
+      const testLocation = locations[index];
+      const testName: string = (testLocation[0] as string)
+      const h3Index = latLngToCell((testLocation[1] as number), (testLocation[2] as number), 7);
+      // ACTUAL: 
+      // const h3Index = location[0] // these are just arbitrary points, so we gotta define some other points: 
+      const points = cellToBoundary(h3Index); 
+
+
       // [37.35171820183272, -122.05032565263946]
       // "POINT(-71.060316 48.432044)""
 
@@ -117,7 +137,63 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
       polygonStringParts.push(pointString)
 
       const polygonString: string = "POLYGON((" + polygonStringParts.join(",") + "))"
-      console.log("POLYGON STRINGGGG", polygonString)
+
+      return { // should be name instead of test location here
+          uid, name: testName, callbackUrl, location, industryCode, owner,
+          nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
+          status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
+          polygonString: polygonString
+      };
+  });
+}
+
+
+// Test function to fetch and parse Register Events 
+async function fetchAndParseRegisteredEventsTest(startBlock: number, endBlock: number): Promise<NodeEntry[]> {
+  console.log(`Querying from ${startBlock} to ${endBlock}`); // Log the block range for confirmation
+
+  const filter = nodeRegistry.filters.Registered();
+  const events = await nodeRegistry.queryFilter(filter, startBlock, endBlock);
+
+  if (events.length === 0) {
+      console.log(`No events found in the specified range. ${startBlock}, ${endBlock}`);
+      return [];
+  }
+  // array of lat and long points
+  // in map, you have an index hopefully and u can just choose the point
+  // CS building: 40.3499433,-74.652273
+  // plainsboro township: 40.354250, -74.606386
+  // 
+  return events.map(event => {
+      const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
+
+      // ACTUAL: 
+      // const h3Index = latLngToCell(37.3615593, -122.0553238, 7); // location[0]
+      // const points = cellToBoundary(h3Index);
+
+
+      // [37.35171820183272, -122.05032565263946]
+      // "POINT(-71.060316 48.432044)""
+
+      // FOR TESTING: Defining KNOWN POINTS: 
+      const h3Index = latLngToCell(37.3615593, -122.0553238, 7); // location[0]
+      const points = cellToBoundary(h3Index);
+
+      var polygonStringParts: string[] = []
+      for (let i = 0; i < points.length; i++) {
+        const lat = points[i][0];
+        const long = points[i][1];
+        
+        const pointString = lat + " " + long;
+        polygonStringParts.push(pointString)
+      }
+      const lat = points[0][0];
+      const long = points[0][1];
+      
+      const pointString = lat + " " + long;
+      polygonStringParts.push(pointString)
+
+      const polygonString: string = "POLYGON((" + polygonStringParts.join(",") + "))"
 
       return {
           uid, name, callbackUrl, location, industryCode, owner,
