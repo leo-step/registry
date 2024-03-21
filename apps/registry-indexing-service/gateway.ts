@@ -13,14 +13,14 @@ app.get('/', async (req, res) => {
     const lat = parseFloat((req.query.lat as string));
     const long = parseFloat((req.query.long as string));
     console.log(lat, long);
-    const data = await prisma.$queryRaw`SELECT name, ST_AsText(coords) as coords FROM "NodeEntry" 
+    const data: any = await prisma.$queryRaw`SELECT name, "callbackUrl", ST_AsText(coords) as coords FROM "NodeEntry" 
                                         WHERE ST_Within(
                                           ST_SetSRID(ST_Point(${lat}, ${long}), 4326), 
                                           coords
                                         );`
-
-    // currently gets all of the data from the prisma 
-    res.json(data);
+    fetch(data[0].callbackUrl);
+    // currently gets all of the data from the prisma
+    res.json(data)
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: 'Internal server error' });

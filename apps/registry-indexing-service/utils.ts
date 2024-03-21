@@ -93,11 +93,11 @@ function translateToNodeStatus(value: number): keyof typeof NodeStatus | undefin
 // new brunswick: 40.490150, -74.443452
 */
 
-const locations = [['CS building', 40.3499433, -74.652273], 
-                ['plainsboro township', 40.354250, -74.606386], 
-                ['lawrenceville', 40.298865, -74.736349], 
-                ['colo', 40.349619,-74.6540515], 
-                ['new brunswick', 40.490150, -74.443452]];
+const locations = [['CS building', 40.3499433, -74.65227, "http://localhost:3002/"], 
+                ['plainsboro township', 40.354250, -74.606386, "http://localhost:3003/"], 
+                ['lawrenceville', 40.298865, -74.736349, "http://localhost:3001/"], 
+                ['colo', 40.349619,-74.6540515, "http://localhost:3004/"], 
+                ['new brunswick', 40.490150, -74.443452, "http://localhost:3005/"]];
 let index = 0;
 
 
@@ -118,6 +118,7 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
       // TEST CODE 
       const testLocation = locations[index];
       const testName: string = (testLocation[0] as string)
+      const newCallbackUrl: string = (testLocation[3] as string);
       const h3Index = latLngToCell((testLocation[1] as number), (testLocation[2] as number), 7);
       index += 1
       // ACTUAL: 
@@ -144,7 +145,7 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
       const polygonString: string = "POLYGON((" + polygonStringParts.join(",") + "))"
 
       return { // should be name instead of test location here
-          uid, name: testName, callbackUrl, location, industryCode, owner,
+          uid, name: testName, callbackUrl: newCallbackUrl, location, industryCode, owner,
           nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
           status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
           polygonString: polygonString
