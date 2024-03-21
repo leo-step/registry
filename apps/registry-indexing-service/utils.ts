@@ -83,6 +83,24 @@ function translateToNodeStatus(value: number): keyof typeof NodeStatus | undefin
 }
 
 
+/* Leo and Stephen Contribution: 
+ We are just adding boilerplate code in order to arbitrarily put some locations within our database, we have yet to parse the actual databases in order to do so 
+
+// CS building: 40.3499433,-74.652273
+// plainsboro township: 40.354250, -74.606386
+// lawrenceville: 40.298865, -74.736349
+// colo: 40.349619,-74.6540515
+// new brunswick: 40.490150, -74.443452
+*/
+
+const locations = [['CS building', 40.3499433, -74.652273], 
+                ['plainsboro township', 40.354250, -74.606386], 
+                ['lawrenceville', 40.298865, -74.736349], 
+                ['colo', 40.349619,-74.6540515], 
+                ['new brunswick', 40.490150, -74.443452]];
+let index = 0;
+
+
 async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: number): Promise<NodeEntry[]> {
   console.log(`Querying from ${startBlock} to ${endBlock}`); // Log the block range for confirmation
 
@@ -93,31 +111,18 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
       console.log(`No events found in the specified range. ${startBlock}, ${endBlock}`);
       return [];
   }
-  // array of lat and long points
-  // in map, you have an index hopefully and u can just choose the point
-
-  // CS building: 40.3499433,-74.652273
-  // plainsboro township: 40.354250, -74.606386
-  // lawrenceville: 40.298865, -74.736349
-  // colo: 40.349619,-74.6540515
-  // new brunswick: 40.490150, -74.443452
-  const locations = [['CS building', 40.3499433, -74.652273], 
-                  ['plainsboro township', 40.354250, -74.606386], 
-                  ['lawrenceville', 40.298865, -74.736349], 
-                  ['colo', 40.349619,-74.6540515], 
-                  ['new brunswick', 40.490150, -74.443452]]
   
-  return events.map((event, index) => {
+  return events.map(event => {
       const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
 
       // TEST CODE 
       const testLocation = locations[index];
       const testName: string = (testLocation[0] as string)
       const h3Index = latLngToCell((testLocation[1] as number), (testLocation[2] as number), 7);
+      index += 1
       // ACTUAL: 
       // const h3Index = location[0] // these are just arbitrary points, so we gotta define some other points: 
       const points = cellToBoundary(h3Index); 
-
 
       // [37.35171820183272, -122.05032565263946]
       // "POINT(-71.060316 48.432044)""
