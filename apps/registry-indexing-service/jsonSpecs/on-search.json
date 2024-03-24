@@ -1,0 +1,82 @@
+// on_search (POST)
+
+// request body
+{
+  "action": "ON_SEARCH",
+  "callback_reference": {
+    "transaction_id": "12345abcde",
+    "message_id": "67890fghij"
+  },
+  "psn_parameters": {
+    "uid": "psn-00001",
+    "name": "ProviderSupportingNode1",
+    "callback_url": "https://psn1.example.com/callback"
+  },
+  "message": {
+    "providers": {
+      "descriptor": {
+        "name": "Local Providers List",
+        "identifier": "list-001",
+        "shortDescription": "A list of local providers based on your search criteria.",
+        "detailedDescription": "This list includes providers that match your search for 'pizza' within the local area, offering both pickup and delivery options.",
+        "attributes": [
+          {
+            "key": "searchKeyword",
+            "value": "pizza"
+          },
+          {
+            "key": "area",
+            "value": "Downtown"
+          }
+        ],
+        "media": [],
+        "images": [],
+        "links": [],
+        "tags": ["food", "pizza", "local"]
+      },
+      "fulfillment_modes": ["LOCAL-PICKUP", "LOCAL-DELIVERY"],
+      "providers": [
+        {
+          "id": "provider-001",
+          "name": "Best Pizza Place",
+          "location": {
+            "latitude": 40.7128,
+            "longitude": -74.0060
+          },
+          "description": "Offering a variety of pizzas and Italian dishes.",
+          "fulfillment_modes": ["LOCAL-PICKUP", "LOCAL-DELIVERY"],
+          "catalog_url": "https://bestpizzaplace.example.com/menu"
+        },
+        {
+          "id": "provider-002",
+          "name": "Italian Pizzeria",
+          "location": {
+            "latitude": 40.7158,
+            "longitude": -74.0080
+          },
+          "description": "Authentic Italian pizza with traditional toppings.",
+          "fulfillment_modes": ["LOCAL-DELIVERY"],
+          "catalog_url": "https://italianpizzeria.example.com/menu"
+        }
+      ],
+      "expiration_time": "2024-04-30T23:59:59Z",
+      "time_to_live": 86400
+    }
+  }
+}
+
+// response (BSN_Response) 
+
+{
+  "bsn_parameters": {
+    "uid": "bsn-000123",
+    "name": "BuyerSupportingNode123",
+    "callback_url": "https://bsn123.example.com/callback"
+  },
+  "message": {
+    "ack": {
+      "status": "ACK"
+    }
+  },
+  "error": null
+}

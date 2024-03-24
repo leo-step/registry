@@ -1,0 +1,67 @@
+// search (POST)
+
+// request body
+{
+    "action": "SEARCH",
+    "callback_reference": {
+      "transaction_id": "1234567890abcdef",
+      "message_id": "abcdef1234567890"
+    },
+    "bsn_parameters": {
+      "uid": "node-uid-123",
+      "name": "Buyer Node Name",
+      "callback_url": "https://buyer.example.com/callback"
+    },
+    "message": {
+      "intent": {
+        "search_string": "Pizza near me",
+        "fulfillment": {
+          "coordinates": {
+            "latitude": 40.712776,
+            "longitude": -74.005974
+          },
+          "fulfillment_mode": "LOCAL_DELIVERY"
+        },
+        "provider": {
+          "descriptor": {
+            "name": "Bob's Pizza",
+            "id": "provider-id-123"
+          }
+        },
+        "merchant_category_codes": [
+          "5812"
+        ],
+        "item": {
+          "descriptor": {
+            "name": "Pepperoni Pizza",
+            "id": "item-id-456"
+          }
+        },
+        "cuisine_types": [
+          "Italian",
+          "Pizza"
+        ],
+        "fulfillment_modes": [
+          "LOCAL_DELIVERY",
+          "PICKUP"
+        ]
+      }
+    }
+  }
+
+// response (PSN_response) 
+{
+    "psn_parameters": {
+      "uid": "node-uid-456",
+      "name": "Provider Node Name",
+      "callback_url": "https://provider.example.com/callback"
+    },
+    "message": {
+      "ack": {
+        "status": "ACK",
+        "timestamp": "2024-03-24T12:34:56Z",
+        "message_id": "abcdef1234567890",
+        "transaction_id": "1234567890abcdef"
+      }
+    }
+  }
