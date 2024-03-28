@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Shop List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f3f3;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+        }
+        .pizza-shop {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .pizza-shop h2 {
+            margin: 0;
+            color: #333;
+        }
+        .pizza-shop p {
+            margin: 5px 0;
+        }
+        .rating {
+            color: green;
+        }
+        input, button {
+            margin: 5px 0;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>My Food Ordering App</h1>
+        <input type="text" id="latitude" placeholder="Latitude">
+        <input type="text" id="longitude" placeholder="Longitude">
+        <input type="text" id="query" placeholder="Search Query (e.g., pizza)">
+        <button id="searchButton">Search</button>
+        <button id="fillDefaultsButton">Fill in</button>
+        <div id="pizzaShopList">
+            <!-- Pizza shops will be listed here -->
+        </div>
+    </div>
+
+    <script>
+        function fetchAndDisplayPizzaShops() {
+            // Get input values
+            var latitude = document.getElementById('latitude').value;
+            var longitude = document.getElementById('longitude').value;
+            var query = document.getElementById('query').value;
+
+            // Use the input values in jsonData
+            jsonData = {
+                "coordinates": {
+                    "latitude": parseFloat(latitude),
+                    "longitude": parseFloat(longitude)
+                },
+                "query": query
+            }
+
+            // Fetching data from a hypothetical API endpoint
+            fetch('http://localhost:3000/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('pizzaShopList');
+                container.innerHTML = ''; // Clear previous results
+                data.forEach(item => {
+                    const shops = item.providers;
+                    const coop = document.createElement('h1');
+                    coop.innerHTML = item.name;
+                    container.appendChild(coop);
+                    shops.forEach(shop => {
+                        const shopElement = document.createElement('div');
+                        shopElement.className = 'pizza-shop';
+                        shopElement.innerHTML = `
+                            <h2>${shop.name}</h2>
+                            <p><strong>Address:</strong> ${shop.address}</p>
+                            <p><strong>Phone:</strong> ${shop.phone}</p>
+                            <p><strong>Specialties:</strong> ${shop.specialties.join(', ')}</p>
+                            <p class="rating"><strong>Rating:</strong> ${shop.rating} / 5</p>
+                        `;
+                        container.appendChild(shopElement);
+                    });
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Event listener for the button
+        function fillDefaultValues() {
+            document.getElementById('latitude').value = "40.3499433";  // Example latitude
+            document.getElementById('longitude').value = "-74.65227";  // Example longitude
+            document.getElementById('query').value = "pizza";          // Default query
+        }
+
+        document.getElementById('searchButton').addEventListener('click', fetchAndDisplayPizzaShops);
+        document.getElementById('fillDefaultsButton').addEventListener('click', fillDefaultValues);
+    </script>
+</body>
+</html>
