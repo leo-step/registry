@@ -13,7 +13,7 @@
     "callback_url": "https://psn1.example.com/callback"
   },
   "message": {
-    "providers": {
+    "providers": { // make into array to aggregrate results and send to client
       "descriptor": {
         "name": "Local Providers List",
         "identifier": "list-001",

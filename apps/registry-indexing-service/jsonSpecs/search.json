@@ -22,20 +22,22 @@
           },
           "fulfillment_mode": "LOCAL_DELIVERY"
         },
-        "provider": {
+        "provider": { // optional
           "descriptor": {
             "name": "Bob's Pizza",
             "id": "provider-id-123"
           }
+          // add property to specify PSN to find the right restaurant
         },
         "merchant_category_codes": [
           "5812"
         ],
-        "item": {
+        "item": { //  optional
           "descriptor": {
             "name": "Pepperoni Pizza",
             "id": "item-id-456"
           }
+          // add property to specify PSN and provider (in some hierarchy)
         },
         "cuisine_types": [
           "Italian",

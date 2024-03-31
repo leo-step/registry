@@ -85,12 +85,6 @@ function translateToNodeStatus(value: number): keyof typeof NodeStatus | undefin
 
 /* Leo and Stephen Contribution: 
  We are just adding boilerplate code in order to arbitrarily put some locations within our database, we have yet to parse the actual databases in order to do so 
-
-// CS building: 40.3499433,-74.652273
-// plainsboro township: 40.354250, -74.606386
-// lawrenceville: 40.298865, -74.736349
-// colo: 40.349619,-74.6540515
-// new brunswick: 40.490150, -74.443452
 */
 
 const locations = [['CS building', 40.3499433, -74.65227, "http://localhost:3002/"], 
@@ -98,8 +92,26 @@ const locations = [['CS building', 40.3499433, -74.65227, "http://localhost:3002
                 ['lawrenceville', 40.298865, -74.736349, "http://localhost:3001/"], 
                 ['colo', 40.349619,-74.6540515, "http://localhost:3004/"], 
                 ['new brunswick', 40.490150, -74.443452, "http://localhost:3005/"]];
+
 let index = 0;
 
+// converts the h3Index to a polygonString 
+function makePolygonString(h3Index: string) {
+  const points = cellToBoundary(h3Index); 
+
+  var polygonStringParts: string[] = []
+  for (let i = 0; i < points.length; i++) {
+    const lat = points[i][0], long = points[i][1];
+    const pointString = lat + " " + long;
+    polygonStringParts.push(pointString)
+  }
+
+  const lat = points[0][0], long = points[0][1]; // need first point to complete polygon
+  const pointString = lat + " " + long;
+  polygonStringParts.push(pointString)
+  const polygonString: string = "POLYGON((" + polygonStringParts.join(",") + "))"
+  return polygonString
+}
 
 async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: number): Promise<NodeEntry[]> {
   console.log(`Querying from ${startBlock} to ${endBlock}`); // Log the block range for confirmation
@@ -115,94 +127,20 @@ async function fetchAndParseRegisteredEvents(startBlock: number, endBlock: numbe
   return events.map(event => {
       const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
 
-      // TEST CODE 
+      // TEST CODE: Conversation of location[index 0] to the h3index 
       const testLocation = locations[index];
       const testName: string = (testLocation[0] as string)
       const newCallbackUrl: string = (testLocation[3] as string);
-      const h3Index = latLngToCell((testLocation[1] as number), (testLocation[2] as number), 7);
-      index += 1
-      // ACTUAL: 
-      // const h3Index = location[0] // these are just arbitrary points, so we gotta define some other points: 
-      const points = cellToBoundary(h3Index); 
+      const h3Index = latLngToCell((testLocation[1] as number), (testLocation[2] as number), 7); // h3Index is the hexagon index 
 
-      // [37.35171820183272, -122.05032565263946]
-      // "POINT(-71.060316 48.432044)""
+      index += 1 // hacky way of indexing a global index 
 
-      var polygonStringParts: string[] = []
-      for (let i = 0; i < points.length; i++) {
-        const lat = points[i][0];
-        const long = points[i][1];
-        
-        const pointString = lat + " " + long;
-        polygonStringParts.push(pointString)
-      }
-      const lat = points[0][0];
-      const long = points[0][1];
-      
-      const pointString = lat + " " + long;
-      polygonStringParts.push(pointString)
 
-      const polygonString: string = "POLYGON((" + polygonStringParts.join(",") + "))"
+      // TODO: right now, we only use the first hexagon to define the polygon for a PSN
+      const polygonString: string = makePolygonString(h3Index) 
 
       return { // should be name instead of test location here
           uid, name: testName, callbackUrl: newCallbackUrl, location, industryCode, owner,
-          nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
-          status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
-          polygonString: polygonString
-      };
-  });
-}
-
-
-// Test function to fetch and parse Register Events 
-async function fetchAndParseRegisteredEventsTest(startBlock: number, endBlock: number): Promise<NodeEntry[]> {
-  console.log(`Querying from ${startBlock} to ${endBlock}`); // Log the block range for confirmation
-
-  const filter = nodeRegistry.filters.Registered();
-  const events = await nodeRegistry.queryFilter(filter, startBlock, endBlock);
-
-  if (events.length === 0) {
-      console.log(`No events found in the specified range. ${startBlock}, ${endBlock}`);
-      return [];
-  }
-  // array of lat and long points
-  // in map, you have an index hopefully and u can just choose the point
-  // CS building: 40.3499433,-74.652273
-  // plainsboro township: 40.354250, -74.606386
-  // 
-  return events.map(event => {
-      const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status } = event.args[2];
-
-      // ACTUAL: 
-      // const h3Index = latLngToCell(37.3615593, -122.0553238, 7); // location[0]
-      // const points = cellToBoundary(h3Index);
-
-
-      // [37.35171820183272, -122.05032565263946]
-      // "POINT(-71.060316 48.432044)""
-
-      // FOR TESTING: Defining KNOWN POINTS: 
-      const h3Index = latLngToCell(37.3615593, -122.0553238, 7); // location[0]
-      const points = cellToBoundary(h3Index);
-
-      var polygonStringParts: string[] = []
-      for (let i = 0; i < points.length; i++) {
-        const lat = points[i][0];
-        const long = points[i][1];
-        
-        const pointString = lat + " " + long;
-        polygonStringParts.push(pointString)
-      }
-      const lat = points[0][0];
-      const long = points[0][1];
-      
-      const pointString = lat + " " + long;
-      polygonStringParts.push(pointString)
-
-      const polygonString: string = "POLYGON((" + polygonStringParts.join(",") + "))"
-
-      return {
-          uid, name, callbackUrl, location, industryCode, owner,
           nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
           status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
           polygonString: polygonString
@@ -235,62 +173,40 @@ export async function getAndUpdateAllRelevantLogs() {
   console.log("Finished updating all relevant logs.");
 }
 
+
+/* connecting to docker container commands:
+
+docker container exec -it registry-postgres bash
+psql -U admin -d registry
+\d "NodeEntry"
+
+
+
+                        Table "public.NodeEntry"
+      Column    |         Type         | Collation | Nullable | Default 
+  --------------+----------------------+-----------+----------+---------
+  uid          | text                 |           | not null | 
+  name         | text                 |           | not null | 
+  callbackUrl  | text                 |           | not null | 
+  location     | text[]               |           |          | 
+  industryCode | text                 |           | not null | 
+  owner        | text                 |           | not null | 
+  nodeType     | "NodeType"           |           | not null | 
+  status       | "NodeStatus"         |           | not null | 
+  coords       | geometry(Point,4326) |           | not null |
+*/
+
+
 // Example processing function for 'Registered' logs
 async function processRegisteredNode(node: NodeEntry) {
-  // try {
-    /*
-      return {
-          uid, name, callbackUrl, location, industryCode, owner,
-          nodeType: translateToNodeType(Number(nodeType)) || 'PSN', 
-          status: translateToNodeStatus(Number(status)) || 'INITIATED', // TODO: improve logic.
-          coords: pointString
-      };
-    */
-
-    /* connecting to docker container commands:
-    
-    docker container exec -it registry-postgres bash
-    psql -U admin -d registry
-    \d "NodeEntry"
-
-
-
-                            Table "public.NodeEntry"
-          Column    |         Type         | Collation | Nullable | Default 
-      --------------+----------------------+-----------+----------+---------
-      uid          | text                 |           | not null | 
-      name         | text                 |           | not null | 
-      callbackUrl  | text                 |           | not null | 
-      location     | text[]               |           |          | 
-      industryCode | text                 |           | not null | 
-      owner        | text                 |           | not null | 
-      nodeType     | "NodeType"           |           | not null | 
-      status       | "NodeStatus"         |           | not null | 
-      coords       | geometry(Point,4326) |           | not null |
-    */
-
-
-    // INSERT INTO app(p_id, the_geom)
-    // VALUES(2, ST_GeomFromText('POINT(-71.060316 48.432044)', 4326));
-
-    // await prisma.$queryRaw`SELECT * FROM User WHERE email = ${email}`
 
     const createNodeEntry = async (data: any) => {
       const { uid, name, callbackUrl, location, industryCode, owner, nodeType, status, polygonString } = data;
       
-      // Using Prisma's executeRaw to execute the raw SQL query
-
-       //ST_GeomFromText('POINT(-71.060316 48.432044)', 4326)
-
-       /*
-       SELECT ST_PolygonFromText('POLYGON((-71.1776585052917 42.3902909739571,-71.1776820268866 42.3903701743239,
--71.1776063012595 42.3903825660754,-71.1775826583081 42.3903033653531,-71.1776585052917 42.3902909739571))');
-st_polygonfromtext
-       
-       */
+      // TODO: using executeRawUnsafe which could have SQL injection, needs safer workaround for Prisma
       const result = await prisma.$executeRawUnsafe(
         'INSERT INTO "NodeEntry" ("uid", "name", "callbackUrl", "location", "industryCode", "owner", "nodeType", "status", "coords") ' +
-        'VALUES ($1, $2, $3, $4, $5, $6, $7::"NodeType", $8::"NodeStatus", ' + `ST_PolygonFromText('${polygonString}', 4326));`,
+        `VALUES ($1, $2, $3, $4, $5, $6, $7::"NodeType", $8::"NodeStatus", ST_PolygonFromText('${polygonString}', 4326));`,
         uid, name, callbackUrl, location, industryCode, owner, nodeType, status
       );
       
